@@ -1,10 +1,11 @@
 import kagglehub
 import pandas as pd
 
-path = kagglehub.dataset_download(
-    "panaaaaa/english-premier-league-and-championship-full-dataset",
-    output_dir="./data"
-)
+# path = kagglehub.dataset_download(
+#     "panaaaaa/english-premier-league-and-championship-full-dataset",
+#     output_dir="./data",
+#     force_download=True
+# )
 
 # Read the csv files into pandas dataframes
 df = pd.read_csv("./data/England CSV.csv")
@@ -16,7 +17,11 @@ df.columns = df.columns.str.replace(" ", "-")
 df.columns = df.columns.str.replace("_", "-")
 
 # Date data type to datetime
-df["date"] = pd.to_datetime(df["date"])
+df["date"] = pd.to_datetime(df["date"], dayfirst=True)
+
+# Add day of week and day code columns to end
+df['day-of-week'] = df['date'].dt.day_name()
+df['day-code'] = df['date'].dt.weekday
 
 # Clean team names
 df["hometeam"] = df["hometeam"].str.lower().str.strip()
@@ -40,5 +45,12 @@ df["season"] = df["date"].apply(lambda x: f"{x.year}-{x.year + 1}" if x.month >=
 # Sort by date and team
 df = df.sort_values(by=["date", "hometeam"]).reset_index(drop=True)
 
-df.to_csv("./data/cleaned_prem_matches.csv", index=False)
+# Add codes for string data
+df["hometeam-code"] = df["hometeam"].astype("category").cat.codes
+df["awayteam-code"] = df["awayteam"].astype("category").cat.codes
 
+# Define the target column based on full-time result. Home win = 1, Draw = 0, Away win = -1
+df["target"] = df["ft-result"].apply(lambda x: 1 if x == "H" else (0 if x == "D" else -1))
+
+# Update the cleaned data to new csv file
+df.to_csv("./data/cleaned_prem_matches.csv", index=False)
