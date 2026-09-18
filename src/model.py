@@ -1,6 +1,6 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score
+from sklearn.metrics import accuracy_score, precision_score, classification_report
 
 matches = pd.read_csv("./data/cleaned_prem_matches.csv")
 
@@ -27,18 +27,23 @@ def make_predictions(data, predictors):
     train = data[data["date"] < "2023-07-01"]
     test = data[data["date"] > "2023-07-01"]
 
-    model = RandomForestClassifier(n_estimators=400, min_samples_split=5, random_state=1)
+    model = RandomForestClassifier(n_estimators=400, min_samples_split=5, class_weight="balanced", random_state=1)
     model.fit(train[predictors], train["target"])
     preds = model.predict(test[predictors])
     combined = pd.DataFrame(dict(actual=test["target"], predicted=preds), index=test.index)
     prec = precision_score(test["target"], preds, average="weighted")
-    return combined, prec
+    report = classification_report(test["target"], preds)
+    return combined, prec, report
 
-combined, prec = make_predictions(matches_rolling, predictors + new_cols)
+combined, prec, report = make_predictions(matches_rolling, predictors + new_cols)
 combined = combined.merge(matches_rolling[["date", "team", "opponent"]], left_index=True, right_index=True)
-print(combined, prec)
 
-combined.to_csv("./data/combined.csv")
+combined.to_csv("./data/results/combined.csv")
+with open("./data/results/precisionScore.txt", "w") as file:
+    file.write(f"{prec}")
+
+with open("./data/results/classificationReport.csv", "w") as file:
+    file.write(report)
 
 merged = combined.merge(combined, left_on=["date", "team"], right_on=["date", "opponent"])
-merged.to_csv("./data/merged.csv")
+merged.to_csv("./data/results/merged.csv")

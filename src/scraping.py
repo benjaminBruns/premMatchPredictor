@@ -7,9 +7,10 @@ import pandas as pd
 #     force_download=True
 # )
 
-# Read the csv files into pandas dataframes
-df = pd.read_csv("./data/England CSV.csv")
-# df2 = pd.read_csv("./data/England 2 CSV.csv")
+# Combine the training and testing datasets together for cleaning
+historical_df = pd.read_csv("./data/England CSV.csv")
+current_season_df = pd.read_csv("./data/seasonData26-27.csv")
+df = pd.concat([historical_df, current_season_df], ignore_index=True)
 
 # Column formatting
 df.columns = df.columns.str.lower()
